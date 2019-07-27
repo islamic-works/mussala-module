@@ -172,14 +172,16 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
     }
 
     private subscribeGPSInfo() {
+        if(this._gpsInfoSubscription && !this._gpsInfoSubscription.closed)
+            this.unsubscribeGPSInfo();
+
         this._gpsInfoSubscription = this._compass.gpsInfo.subscribe((gpsInfo) => {
             if (this._settings.debug)
                 console.log("MussalaMapsComponent.ngAfterViewInit() _compass.gpsInfo.subscribe ", gpsInfo);
             this.gpsInfo = gpsInfo;
         }, (error) => {
             console.error("MussalaMapsComponent.ngAfterViewInit() _compass.gpsInfo.subscribe ", error);
-        });
-    }
+        });    }
 
     onCoordinateTapped(args) {
         console.log("Coordinate Tapped, Lat: " + args.position.latitude + ", Lon: " + args.position.longitude, args);
@@ -202,10 +204,8 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
         this.unsubscribeGPSInfo();
     }
 
-
-
     private unsubscribeGPSInfo() {
-        if (this._gpsInfoSubscription && this._gpsInfoSubscription.closed) {
+        if (this._gpsInfoSubscription && !this._gpsInfoSubscription.closed) {
             if (this._settings.debug)
                 console.log("MussalaMapsComponent.unsubscribeGPSInfo() closed");
             this._gpsInfoSubscription.unsubscribe();
