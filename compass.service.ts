@@ -1,17 +1,9 @@
-import * as app from "tns-core-modules/application";
 import { Injectable, OnInit, OnDestroy } from "@angular/core";
 import * as geoLocation from "nativescript-geolocation";
 import { GPSConfig } from "./utils/gps-config";
-import { GPSInfo } from "./utils/gps-info";
+import { GPSInfo } from "../entity/gps-info";
 import { MussalaSettingsService } from "./mussala.settings.service";
-import { MakerType, IslamicMarker } from "./utils/islamic-marker";
-import { Marker, Position } from "nativescript-google-maps-sdk";
-import { ImageSource } from "tns-core-modules/image-source/image-source";
-import { Image } from "tns-core-modules/ui/image/image";
 import { BehaviorSubject, Observable } from "rxjs";
-
-declare const android: any;
-declare const CLLocationManager: any;
 
 /**
  * for more information go to:
@@ -21,38 +13,16 @@ declare const CLLocationManager: any;
     providedIn: "root"
 })
 export class CompassService implements OnDestroy {
-    private _gpsInfo: BehaviorSubject<GPSInfo> =  new BehaviorSubject<GPSInfo>(<GPSInfo>{});
+    private _gpsInfo: BehaviorSubject<GPSInfo> = new BehaviorSubject<GPSInfo>(<GPSInfo>{});
     _gpsInfo$: Observable<GPSInfo>;
 
-    findNearMussala(arg0: GPSInfo): GPSInfo {
-        return <GPSInfo>{ latitude: -3.7214696, longitude: -38.5430259 }
-    }
-    createIslamicMarker(id: number, type: MakerType, title: string, snippet: string, address: string, gpsInfo: GPSInfo): Marker {
-
-        let marker = new Marker();
-        marker.position = Position.positionFromLatLng(gpsInfo.latitude, gpsInfo.longitude);
-        //        marker.position = <Position>userData.gpsInfo;
-        marker.title = title;
-        marker.snippet = snippet;
-        marker.userData = <IslamicMarker>{ id, title, address, gpsInfo };
-        marker.infoWindowTemplate = 'IslamicMarkerTemplate';
-
-        let image: Image = new Image();
-        switch (type) {
-            case MakerType.MUSSALA:
-            case MakerType.MOSQUE:
-                let imageSource = new ImageSource();
-                imageSource.fromFile('~/assets/images/mussala-maps/quipla.png');
-                image.imageSource = imageSource;
-                marker.icon = image;
-                break;
-            default:
-                break;
-        }
-        return marker;
-    }
-
-
+    /**
+     * Ao ser construído verifica se o serviço de geolocalização está ativo e liberado.
+     *
+     * Ao ser autorizado o serviço para a monitorar as atualizações da camera.
+     *
+     * @param _settings Serviço de configuração e parâmetros do módulo Mussala.
+     */
     constructor(protected _settings: MussalaSettingsService) {
         if (_settings.debug) console.log("CompassService.new");
         geoLocation.isEnabled({ updateTime: 300 })
@@ -63,32 +33,48 @@ export class CompassService implements OnDestroy {
                     geoLocation.enableLocationRequest()
                         .then(() => {
                             console.log("CompassService.new geoLocation.isEnabled geoLocation.enableLocationRequest.then")
+                            this.startHeadingUpdates();
                         }, (e) => {
                             console.error("Error: " + (e.message || e));
                         });
                 }
-                this.startHeadingUpdates();
+                else
+                    this.startHeadingUpdates();
             }, (e) => {
                 console.error("Error: " + (e.message || e));
-            }); 
+            });
 
     }
 
-    public get gpsInfo(): Observable<GPSInfo> {
+    /**
+     * Retorna um Observable que permite o cadastro de Observadores do GPS, assim novas coordenadas do aparelho telefônico são enviados aos Observadores.
+     *
+     */
+    public get gpsInfo$(): Observable<GPSInfo> {
         if (!this._gpsInfo$)
             this._gpsInfo$ = this._gpsInfo.asObservable()
         return this._gpsInfo$;
     }
 
+    /**
+     * quando este serviço é destruído interrompe todo os monitoramentos do GPS.
+     */
     ngOnDestroy() {
         if (this._settings.debug)
             console.log("CompassService.ngOnDestroy!");
+        this._gpsInfo.complete();
         this.stopUpdatingHeading();
-        if(!this._gpsInfo$)
-            this._gpsInfo$.
     }
 
 
+    /**
+     * com base nas configurações por GPSConfig ou ou GeoLocation.Options retorna um promise que resolve com as informações do GPS.
+     *
+     * Caso não seja informado nenhuma configuração usa o default <geoLocation.Options>{desiredAccuracy}
+     *
+     * @param {GPSConfig|geoLocation.Options} cfg
+     * @return {Promise<GPSInfo>}
+     */
     getMyLocation(cfg?: GPSConfig | geoLocation.Options): Promise<GPSInfo> {
         //return {
         //  latitude: -3.9242100850690402,
@@ -97,46 +83,53 @@ export class CompassService implements OnDestroy {
 
         return geoLocation.getCurrentLocation(<geoLocation.Options>{ ...{ desiredAccuracy: 1 }, ...cfg })
             .then((loc: geoLocation.Location) => {
-                if (this._settings.debug)
+              /*  if (this._settings.debug)
                     console.log("compassService.getMyLocation getCurrentLocation.then", loc);
-
+*/
                 return <GPSInfo>{ latitude: loc.latitude, longitude: loc.longitude, elevation: loc.altitude, direction: loc.direction }
             })
     }
 
-    watchId;
+    /**
+     * Armazena o id do listener do serviço de GeoLocalização, caso não esteja cadastrado
+     */
+    private _watchId: number;
+
+    /**
+     * Inicia o serviço de GeoLocalização.
+     *
+     * Caso {this._watchId} já esteja definido, retorna sem executar nada.
+     */
     startHeadingUpdates() {
         if (this._settings.debug) console.log("CompassService.startUpdatingHerading()");
 
-        if (this.watchId) {
-            if (this._settings.debug) console.log("CompassService.startUpdatingHerading()");
+        if (this._watchId) {
+            if (this._settings.debug) console.log("CompassService.startUpdatingHerading() serviço já iniciado");
             return;
         }
 
-        if (this._settings.debug) console.log("CompassService.startUpdatingHerading()Android");
-        this.watchId = geoLocation.watchLocation(
+        this._watchId = geoLocation.watchLocation(
             (loc) => {
                 if (loc) {
-                    if (this._settings.debug) console.log("CompassService.startHeadingUpdates Received location: ", loc);
+                    // if (this._settings.debug) console.log("CompassService.startHeadingUpdates Received location: ", loc);
                     this._gpsInfo.next(<GPSInfo>loc);
                 }
             },
             (e) => {
                 console.error("Error: " + e.message);
             },
-            { desiredAccuracy: 3, updateDistance: 10, minimumUpdateTime: 1000 * .3 }); // Should update every 20 seconds according to Googe documentation. Not verified.
+            { desiredAccuracy: 3, updateDistance: 10, minimumUpdateTime: 1000 * .3 });
+            // Should update every 20 seconds according to Googe documentation. Not verified.
     }
 
 
     stopUpdatingHeading() {
         if (this._settings.debug) console.log("CompassService.stopUpdatingHerading()");
 
-        if (this.watchId) {
-            geoLocation.clearWatch(this.watchId);
+        if (this._watchId) {
+            geoLocation.clearWatch(this._watchId);
         }
     }
 
-    getDistance(loc1, loc2) {
-        console.log("Distance between loc1 and loc2 is: " + geoLocation.distance(loc1, loc2));
-    }
+
 }
