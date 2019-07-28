@@ -1,17 +1,12 @@
 import { Page } from 'tns-core-modules/ui/page/page';
 import { registerElement } from 'nativescript-angular/element-registry';
-import { Component, OnInit, ViewChild, ElementRef, Output, AfterViewInit } from '@angular/core';
-import { MapView, Marker, Position, Polygon, Polyline } from 'nativescript-google-maps-sdk';
-import * as platform from 'tns-core-modules/platform'
-import { CompassService } from '../compas.service';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, Output, AfterViewInit } from '@angular/core';
+import { MapView, Marker } from 'nativescript-google-maps-sdk';
+import { CompassService } from '../compass.service';
 import { MussalaSettingsService } from '../mussala.settings.service';
 import { GPSConfig } from '../utils/gps-config';
 import { GPSInfo } from '../utils/gps-info';
-import { MakerType, IslamicMarker } from '../utils/islamic-marker';
 
-import * as http from "http";
-import * as geolocation from "nativescript-geolocation";
-import { Accuracy } from "tns-core-modules/ui/enums";
 import { Subscription } from 'rxjs';
 
 // Important - must register MapView plugin in order to use in Angular templates
@@ -23,21 +18,22 @@ registerElement("MapView", () => MapView);
     styleUrls: ['./mussala-maps.component.scss'],
     moduleId: module.id,
 })
-export class MussalaMapsComponent implements OnInit, AfterViewInit {
+export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
+
+    @Output()
     isBusy: boolean = true;
+    @Output()
     active: string;
 
-    @ViewChild("MapView", { "static": false }) mapView: MapView & { infoWindowTemplates: string };
+    //@ViewChild("mapView", { "static": false })
+    mapView: MapView & { infoWindowTemplates: string };
+
     _gpsInfoSubscription: Subscription;
 
     constructor(
         private _page: Page,
         private _settings: MussalaSettingsService,
         private _compass: CompassService) { }
-
-    //{ "lat":   -3.924263          , "lng":     -38.453483, "elv": 16 }
-    //           -3.9242016         ,            -38.4558762
-    //"latitude":-3.9242100850690402,"longitude":-38.45365650951862,"zoom":18.409713745117188
 
     gpsInfo: GPSInfo = <GPSInfo>{ latitude: 0, longitude: 0 };
     zoom = 17;
@@ -84,10 +80,12 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
         return templates;
     }
 
-    goToMyLocation() {
+    public goToMyLocation() {
 
         if (this._settings.debug)
             console.log("MussalaMapsComponent.goToMyLocation");
+
+        this.unsubscribeGPSInfo();
 
         const cfg: GPSConfig = {};
         this._compass.getMyLocation(cfg)
@@ -98,9 +96,8 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
                 this.gpsInfo = gpsInfo;
                 this.mapView.latitude = this.gpsInfo.latitude;
                 this.mapView.longitude = this.gpsInfo.longitude;
+                this.subscribeGPSInfo();
             });
-
-        this.subscribeGPSInfo();
     }
 
     findNearMussala() {
@@ -108,10 +105,11 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
 
         this.unsubscribeGPSInfo();
 
-        this.gpsInfo = this._compass.findNearMussala(<GPSInfo>{
+        this.gpsInfo = this._settings.findGPSInfoNearMussala(<GPSInfo>{
             latitude: this.mapView.latitude,
             longitude: this.mapView.longitude
-        })
+        });
+
         this.mapView.latitude = this.gpsInfo.latitude;
         this.mapView.longitude = this.gpsInfo.longitude;
 
@@ -120,9 +118,11 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
     changeMapType() {
         this.mapView.gMap.setMapType(2);
     }
+
     locationSelected(event) {
         console.log("Location Selected: ", event);
     }
+
     //Map events
     onMapReady(event) {
         console.log('Map Ready');
@@ -139,49 +139,30 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
         const template = this.createInfoWindowTemplate();
         this.mapView.infoWindowTemplates = template;
 
-        let marker: Marker = this._compass.createIslamicMarker(
-            1,
-            MakerType.MUSSALA,
-            "Mussala Fortaleza",
-            "Fortaleza, Ce, Brasil",
-            "Rua São Paulo, 1831 - Jacarecanga, Fortaleza - CE, 60310-226",
-            //-3.7214696,-38.5430259
-            <GPSInfo>{ latitude: -3.7214696, longitude: -38.5430259 }
-        );
-        this.mapView.addMarker(marker);
-
-        marker = this._compass.createIslamicMarker(
-            2,
-            MakerType.SPONSOR,
-            "Curso Arduino Minas",
-            "Aquiraz, Ce, Brasil",
-            "R. José Alves Pereira, S/N, Aquiraz, CE, Brasil",
-            {
-                latitude: -3.9242100850690402,
-                longitude: -38.45365650951862
-            }
-        );
-
-        this.mapView.addMarker(marker);
+        const allMarkers: Marker[] = this._settings.allMarkers;
+        this.mapView.addMarker(...allMarkers);
 
         this.goToMyLocation();
-        this.subscribeGPSInfo();
 
         this.isBusy = false;
 
     }
 
     private subscribeGPSInfo() {
-        if(this._gpsInfoSubscription && !this._gpsInfoSubscription.closed)
+        if (this._settings.debug)
+            console.log("MussalaMapsComponent.subscribeGPSinfo()");
+
+            if (this._gpsInfoSubscription && !this._gpsInfoSubscription.closed)
             this.unsubscribeGPSInfo();
 
-        this._gpsInfoSubscription = this._compass.gpsInfo.subscribe((gpsInfo) => {
+        this._gpsInfoSubscription = this._compass.gpsInfo$.subscribe((gpsInfo) => {
             if (this._settings.debug)
                 console.log("MussalaMapsComponent.ngAfterViewInit() _compass.gpsInfo.subscribe ", gpsInfo);
             this.gpsInfo = gpsInfo;
         }, (error) => {
             console.error("MussalaMapsComponent.ngAfterViewInit() _compass.gpsInfo.subscribe ", error);
-        });    }
+        });
+    }
 
     onCoordinateTapped(args) {
         console.log("Coordinate Tapped, Lat: " + args.position.latitude + ", Lon: " + args.position.longitude, args);
@@ -199,16 +180,37 @@ export class MussalaMapsComponent implements OnInit, AfterViewInit {
     }
 
     onCameraMove(args) {
+    //    if (this._settings.debug)
+    //        console.log("Camera moving: " + JSON.stringify(args.camera));
+
+    }
+
+    onCameraMoveStarted(args) {
         if (this._settings.debug)
-            console.log("Camera moving: " + JSON.stringify(args.camera));
+            console.log("Camera Started move: " + JSON.stringify(args));
+        if (args == CameraMoveReason.REASON_GESTURE) this.unsubscribeGPSInfo();
+    }
+
+    ngOnDestroy() {
         this.unsubscribeGPSInfo();
     }
 
     private unsubscribeGPSInfo() {
+        if (this._settings.debug)
+            console.log("MussalaMapsComponent.unsubscribeGPSInfo()");
         if (this._gpsInfoSubscription && !this._gpsInfoSubscription.closed) {
+            this._gpsInfoSubscription.unsubscribe();
             if (this._settings.debug)
                 console.log("MussalaMapsComponent.unsubscribeGPSInfo() closed");
-            this._gpsInfoSubscription.unsubscribe();
         }
     }
+}
+
+/**
+ * https://developers.google.com/maps/documentation/android-sdk/events
+ */
+export enum CameraMoveReason {
+    REASON_GESTURE = 1, // indicates that the camera moved in response to a user's gesture on the map, such as panning, tilting, pinching to zoom, or rotating the map.
+    REASON_API_ANIMATION = 2, // indicates that the API has moved the camera in response to a non-gesture user action, such as tapping the zoom button, tapping the My Location button, or clicking a marker.
+    REASON_DEVELOPER_ANIMATION = 3 // indicates that your app has initiated the camera movement.
 }

@@ -1,0 +1,32 @@
+<DockLayout class="page">
+   <label dock="top" text="Mussala" class="header"></label>
+   <FlexboxLayout dock="bottom" class="footer">
+      <ns-menu [active]="active"></ns-menu>
+   </FlexboxLayout>
+
+   <GridLayout orientation="vertical" rows="*, auto" height="100%" width="100%" dock="left">
+         <MapView mapView
+         visibility="{{ isBusy ? 'collapsed' : 'visible' }}"
+         [latitude]="gpsInfo.latitude" [longitude]="gpsInfo.longitude"
+         [zoom]="zoom" [minZoom]="minZoom" [maxZoom]="maxZoom" [bearing]="bearing"
+         [tilt]="tilt" i-padding="50,50,50,50" [padding]="padding"
+         mapAnimationsEnabled="true"
+         (mapReady)="onMapReady($event)"
+         (markerSelect)="onMarkerEvent($event)" (markerBeginDragging)="onMarkerEvent($event)"
+         (markerEndDragging)="onMarkerEvent($event)" (markerDrag)="onMarkerEvent($event)"
+         (markerInfoWindowTapped)="onMarkerEvent($event)" (coordinateTapped)="onCoordinateTapped($event)"
+         (coordinateLongPress)="locationSelected($event)"
+         (cameraChanged)="onCameraChanged($event)"
+         (cameraMove)="onCameraMove($event)"
+         (cameraMoveStarted)="onCameraMoveStarted($event)"></MapView>
+         <StackLayout row="2" orientation="horizontal">
+            <FAB #prayTimesMenuToDay (tap)="findNearMussala()" icon="~/assets/images/mussala/find-near-mussala.png"
+               [ngClass]="{ 'fab-button-find-near-active': active === 'find-near' }" rippleColor="#f1f1f1"
+               class="fab-button fab-button-find-near"></FAB>
+            <FAB #prayTimesMenuNew (tap)="goToMyLocation()" icon="~/assets/images/mussala/point-to-my-location.png"
+               [ngClass]="{ 'fab-button-my-location-active': active === 'today' }" rippleColor="#f1f1f1"
+               class="fab-button fab-button-my-location"></FAB>
+         </StackLayout>
+    </GridLayout>
+</DockLayout>
+<ActivityIndicator row="1" #activityIndicator [busy]="isBusy"  width="100" height="100" class="activity-indicator"></ActivityIndicator>
