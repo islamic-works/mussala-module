@@ -1,4 +1,5 @@
-import { GPSInfo } from "../../entity/gps-info";
+import { Image } from "tns-core-modules/ui/image";
+import { GPSInfo } from "../../entities/gps-info";
 
 export interface MarkerInfo {
     description: string;
@@ -7,7 +8,7 @@ export interface MarkerInfo {
     address: string;
     type: MarkerType;
     gps: GPSInfo;
-
+    photo: string;
 }
 export enum MarkerType {
     KAABA = 1,

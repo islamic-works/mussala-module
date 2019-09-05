@@ -5,7 +5,7 @@
    </FlexboxLayout>
 
    <GridLayout orientation="vertical" rows="*, auto" height="100%" width="100%" dock="left">
-         <MapView mapView 
+         <MapView mapView
          [latitude]="gpsInfo.latitude" [longitude]="gpsInfo.longitude"
          [zoom]="zoom" [minZoom]="minZoom" [maxZoom]="maxZoom" [bearing]="bearing"
          [tilt]="tilt" i-padding="50,50,50,50" [padding]="padding"
@@ -19,12 +19,30 @@
          (cameraMove)="onCameraMove($event)"
          (cameraMoveStarted)="onCameraMoveStarted($event)"></MapView>
          <StackLayout row="2" orientation="horizontal">
-            <FAB #prayTimesMenuToDay (tap)="findNearMussala()" icon="~/assets/images/mussala/find-near-mussala.png"
-               [ngClass]="{ 'fab-button-find-near-active': active === 'find-near' }" rippleColor="#f1f1f1"
-               class="fab-button fab-button-find-near"></FAB>
-            <FAB #prayTimesMenuNew (tap)="goToMyLocation()" icon="~/assets/images/mussala/point-to-my-location.png"
-               [ngClass]="{ 'fab-button-my-location-active': active === 'today' }" rippleColor="#f1f1f1"
+            <FAB (tap)="findNearMussala()" icon="~/assets/images/mussala-maps/find-near-mussala.png"
+               [ngClass]="{ 'fab-button-find-near-active': active_sub === 'find-mussala-near' }" rippleColor="#f1f1f1"
+               class="fab-button fab-button-find-mussala-near"></FAB>
+            <FAB (tap)="findNearMuslin()" icon="~/assets/images/mussala-maps/find-near-muslin.png"
+               [ngClass]="{ 'fab-button-find-near-active': active_sub === 'find-muslin-near' }" rippleColor="#f1f1f1"
+               class="fab-button fab-button-find-muslin-near"></FAB>
+            <FAB (tap)="goToMyLocation()" icon="~/assets/images/mussala-maps/point-to-my-location.png"
+               [ngClass]="{ 'fab-button-my-location-active': active_sub === 'my-location' }" rippleColor="#f1f1f1"
                class="fab-button fab-button-my-location"></FAB>
+            <stacklayout orientation="horizontal">
+               <FAB #login (tap)="doLogin('phone')" icon="~/assets/images/auth/do-login.png"
+                  [ngClass]="{ 'fab-button-login-active': active_sub === 'login' }" rippleColor="#f1f1f1"
+                  class="fab-button fab-button-login"></FAB>
+               <FAB #login_google (tap)="doLogin('google')" icon="~/assets/images/auth/google-active.png"
+                  [ngClass]="{ 'fab-button-login-active': active_sub === 'google' }" rippleColor="#f1f1f1"
+                  class="fab-button fab-button-login"></FAB>
+               <FAB #login_facebook (tap)="doLogin('facebook')" icon="~/assets/images/auth/facebook-active.png"
+                  [ngClass]="{ 'fab-button-login-active': active_sub === 'facebook' }" rippleColor="#f1f1f1"
+                  class="fab-button fab-button-login"></FAB>
+               <label dock="top" [text]="msg" style="text-align: center" textWrap="true"></label>
+            </stacklayout>
          </StackLayout>
-    </GridLayout>
-</DockLayout> 
+    </GridLayout> 
+    
+ <!-- <app-spinner dock="left" *ngIf="isBusy"></app-spinner> -->  
+
+</DockLayout>

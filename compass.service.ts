@@ -1,9 +1,11 @@
 import { Injectable, OnInit, OnDestroy } from "@angular/core";
-import * as geoLocation from "nativescript-geolocation";
+
 import { GPSConfig } from "./utils/gps-config";
-import { GPSInfo } from "../entity/gps-info";
+import { GPSInfo } from "../entities/gps-info";
 import { MussalaSettingsService } from "./mussala.settings.service";
 import { BehaviorSubject, Observable } from "rxjs";
+
+import * as geoLocation from "nativescript-geolocation";
 
 /**
  * for more information go to:
@@ -131,5 +133,30 @@ export class CompassService implements OnDestroy {
         }
     }
 
+    /**
+     * 
+     */
+    public getDistance(loc1: GPSInfo, loc2: GPSInfo) {
+        let distance = geoLocation
+        .distance(
+            <geoLocation.Location>{ altitude: loc1.elevation, latitude: loc1.latitude, longitude: loc1.longitude },
+            <geoLocation.Location>{ altitude: loc2.elevation, latitude: loc2.latitude, longitude: loc2.longitude }
+            );
+        console.log("Distance between loc1 and loc2 is: ", distance);
+        return distance;
+    }
 
+    /**
+     * Com base nas informações de GPS informadas retorna a localização da Mussala mais próxima.
+     *
+     * Em nosso cadastro {markers.json} são cadastrados todos os tipos de marcações no mapa,
+     * a busca é feito pelos tipos MarkerType.MOSQUE e retorna o que tem a distância meno geograficamente.
+     *
+     * @param {GPSInfo} gps
+     */
+    public findGPSInfoNearMussala(gps: GPSInfo): GPSInfo {
+        //@TODO procura na lista de markers, mussala, mesquitas e centros de apoio mais próximo, 
+        // usa o _settings para obter a lista de markers cadastrados 
+        return <GPSInfo>{ latitude: -3.7214696, longitude: -38.5430259 }
+    }
 }

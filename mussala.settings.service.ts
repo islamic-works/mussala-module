@@ -4,12 +4,11 @@ import { MarkerInfo, MarkerType } from './utils/islamic-marker';
 import { Marker, Position } from 'nativescript-google-maps-sdk';
 import { Image } from 'tns-core-modules/ui/image/image';
 import { ImageSource } from 'tns-core-modules/image-source/image-source';
+import * as http from "tns-core-modules/http";
 
-import * as geoLocation from "nativescript-geolocation";
-
-import { GPSInfo } from '../entity/gps-info';
-import { Sponsor } from '../entity/sponsor';
-import { TeamMember } from '../entity/team-member';
+import { GPSInfo } from '../entities/gps-info';
+import { Sponsor } from '../entities/sponsor';
+import { TeamMember } from '../entities/team-member';
 
 @Injectable({
     providedIn: 'root'
@@ -106,7 +105,7 @@ export class MussalaSettingsService {
      * O id original é somado ao típo multiplicado por 1000000000.
      * {(type * 1000000000) + id}
      */
-    ajustMakerId(item: MarkerInfo): number {
+    private ajustMarkerId(item: MarkerInfo): number {
         let id: number;
 
         if (item.type) id = (item.type * 100000000) + item.id;
@@ -121,12 +120,12 @@ export class MussalaSettingsService {
      * @param {MarkerInfo} type tipo de marcador a ser criado, deve ser informado caso id seja do tipo numérico
      * @param {string} title título do marcador a ser crido, deve ser informado caso o id seja do tipo numérico
      */
-    createMarker(id: number | MarkerInfo | Sponsor | TeamMember, type?: MarkerType, title?: string, snippet?: string, address?: string, gps?: GPSInfo): Marker {
+    public createMarker(id: number | MarkerInfo | Sponsor | TeamMember, type?: MarkerType, title?: string, snippet?: string, address?: string, gps?: GPSInfo): Marker {
 
         // if (this._settings.debug) console.log("MussalaSettingsServices.createMarker()");
 
         let marker: Marker = new Marker();
-        let icon: Image|string;
+        let icon: Image | string;
         if (typeof id == 'number') {
             //if (this._settings.debug) console.log("MussalaSettingsServices.createMarker marker use individual data", id, type, title, snippet, address, gps)
             marker.position = Position.positionFromLatLng(gps.latitude, gps.longitude);
@@ -134,8 +133,16 @@ export class MussalaSettingsService {
             marker.snippet = snippet;
             marker.userData = <MarkerInfo>{ id, title, address, gps };
             marker.infoWindowTemplate = this.getInfoTemplate(type);
-
             icon = this.getMarkerIcon(type);
+        } else if ((<MarkerInfo>id).type == MarkerType.MUSLIN) {
+            console.log("MussalaSettingsService.createMarker Muslin")
+            id = <MarkerInfo>id;
+            marker.position = Position.positionFromLatLng(id.gps.latitude, id.gps.longitude)
+            marker.title = id.title;
+            marker.snippet = id.description;
+            marker.userData = id;
+            marker.infoWindowTemplate = this.getInfoTemplate(MarkerType.TEAM);
+            icon = this.getMarkerIcon(id.photo);
         } else if ((<TeamMember>id).role && (<TeamMember>id).gps && (<TeamMember>id).gps.latitude) {
             id = <TeamMember>id;
             marker.position = Position.positionFromLatLng(id.gps.latitude, id.gps.longitude)
@@ -163,8 +170,8 @@ export class MussalaSettingsService {
             marker.infoWindowTemplate = this.getInfoTemplate(id.type);
             icon = this.getMarkerIcon(id.type);
         }
-        console.log(icon);
         if (icon != undefined) marker.icon = icon;
+
         return marker;
     }
 
@@ -173,7 +180,7 @@ export class MussalaSettingsService {
      *
      * @param {MarkerType} type
      */
-    getInfoTemplate(type: MarkerType): string {
+    public getInfoTemplate(type: MarkerType): string {
         let template: string;
 
         switch (type) {
@@ -196,44 +203,68 @@ export class MussalaSettingsService {
      *
      * @param {MarkerType} type
      */
-    getMarkerIcon <I extends Image|String>(type: MarkerType | string): I {
+    public getMarkerIcon(type: MarkerType | string): Image | string {
         let imageFile: string;
-        switch (type) {
-            case MarkerType.KAABA:
-            case MarkerType.MOSQUE:
-            case MarkerType.MUSSALA:
-                imageFile = '~/assets/images/mussala-maps/quipla.png';
-                break;
-            case MarkerType.MUSLIN:
-            case MarkerType.SPONSOR:
-            case MarkerType.POINTER:
-            default:
+
+        console.log("MussalaSettingsService.getMarkerIcon", type, typeof type);
+
+        if (typeof type != 'string')
+            switch (type) {
+                case MarkerType.KAABA:
+                case MarkerType.MOSQUE:
+                case MarkerType.MUSSALA:
+                    imageFile = '~/assets/images/mussala-maps/markers/quipla.png';
+                    break;
+                case MarkerType.MUSLIN:
+                case MarkerType.POINTER:
+                    imageFile = '~/assets/images/mussala-maps/markers/my-location.png';
+                    break;
+                case MarkerType.SPONSOR:
+                default:
                     if (this._settings.debug)
-                    console.log("MussalaSettingsService.getMakerIcon default");
-                break;
-        }
+                        console.log("MussalaSettingsService.getMakerIcon default");
+                    break;
+            }
 
         let image: Image;
         let imageSource = new ImageSource();
         if (imageFile != undefined) {
-            image = new Image();
             if (imageSource.loadFromFile(imageFile)) {
+                image = new Image();
                 image.imageSource = imageSource;
             } else console.error("MussalaSettingsSErvicegetMarkerIcon ImageSource not loaded.", imageFile);
-        } else if (typeof type === 'string') {
+        } else if (typeof type === 'string' && type.startsWith("data:image/png;base64")) {
             if (this._settings.debug)
                 console.log("MussalaSettingsService.getMakerIcon base64", type);
-// image = new Image();
-            // problemas com nosso formato bese 64 verificar conversor
-            // team usa url ou arquivo local
-            // imageSource.loadFromBase64(type);
-            // image.imageSource = imageSource;
+            if (imageSource.loadFromBase64(type.slice(22))) {
+                image = new Image();
+                image.imageSource = imageSource;
+            } else console.error("MussalaSettingsSErvicegetMarkerIcon ImageSource Base64 not loaded.", type);
+        } else if (typeof type == 'string' && type.startsWith("http")) {
+            if (this._settings.debug)
+                console.log("MussalaSettingsService.getMakerIcon http", type);
+            //return type;
+//            image = new Image();
+//            image.src = type;
+            if (imageSource.loadFromFile("~/assets/images/mussala-maps/markers/my-location.png")) {
+            image = new Image();
+                image.imageSource = imageSource;
+            }
+/*
+            http.getImage(type).then((r: ImageSource) => {
+                if (this._settings.debug)
+                    console.log("MussalaSettingsSErvicegetMarkerIcon http.getImage.then Imagem Carregada!");
+                image.imageSource = r;
+            }, (e) => {
+                console.error("MussalaSettingsSErvicegetMarkerIcon ImageSource http not loaded.", type, e);
+            });
+*/
         } else if (this._settings.debug)
             console.log("MussalaSettingsService.getMakerIcon Não tem icone personalizado!");
 
         //    if (this._settings.debug)
         //        console.log("MussalaSettingsService.getMakerIcon ", image);
-        return <I>image;
+        return image;
     }
 
     /**
@@ -245,7 +276,7 @@ export class MussalaSettingsService {
      * Para os Muslins e relacionados perto, veja o serviço CompassService que terá
      * um observer que irá lançar eventos para novos Markers correspondentes.
      */
-    get allMarkers(): Marker[] {
+    public get allMarkers(): Marker[] {
         if (this._settings.debug)
             console.log("MussalaSettingsService.allMarkers");
 
@@ -291,14 +322,7 @@ export class MussalaSettingsService {
      *
      * @param {GPSInfo} gps
      */
-    findGPSInfoNearMussala(gps: GPSInfo): GPSInfo {
+    public findGPSInfoNearMussala(gps: GPSInfo): GPSInfo {
         return <GPSInfo>{ latitude: -3.7214696, longitude: -38.5430259 }
-    }
-
-    getDistance(loc1: GPSInfo, loc2: GPSInfo) {
-        console.log("Distance between loc1 and loc2 is: " + geoLocation
-            .distance(
-                <geoLocation.Location>{ altitude: loc1.elevation, latitude: loc1.latitude, longitude: loc1.longitude },
-                <geoLocation.Location>{ altitude: loc2.elevation, latitude: loc2.latitude, longitude: loc2.longitude }));
     }
 }
