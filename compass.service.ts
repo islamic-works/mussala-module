@@ -1,6 +1,6 @@
 import { Injectable, OnInit, OnDestroy } from "@angular/core";
 
-import { GPSConfig } from "./utils/gps-config";
+import { GPSConfig } from "../entities/gps-config";
 import { GPSInfo } from "../entities/gps-info";
 import { MussalaSettingsService } from "./mussala.settings.service";
 import { BehaviorSubject, Observable } from "rxjs";

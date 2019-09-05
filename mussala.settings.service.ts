@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../services/settings.service';
-import { MarkerInfo, MarkerType } from './utils/islamic-marker';
+import { MarkerInfo, MarkerType } from '../entities/islamic-marker';
 import { Marker, Position } from 'nativescript-google-maps-sdk';
 import { Image } from 'tns-core-modules/ui/image/image';
 import { ImageSource } from 'tns-core-modules/image-source/image-source';

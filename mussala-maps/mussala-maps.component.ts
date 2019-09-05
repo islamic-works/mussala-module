@@ -12,12 +12,12 @@ import { AuthService, PhoneOptions, FacebookOptions, GoogleOptions, LoginType } 
 import { IslamicUser } from '../../auth/islamic-user';
 import { MussalaSettingsService } from '../mussala.settings.service';
 
-import { GPSConfig } from '../utils/gps-config';
+import { GPSConfig } from '../../entities/gps-config';
 import { GPSInfo } from '../../entities/gps-info';
 
 import { Subscription } from 'rxjs';
 import { GetPhoneNumberComponent, Modal } from '../../auth/get-phone-number';
-import { MarkerInfo, MarkerType } from '../utils/islamic-marker';
+import { MarkerInfo, MarkerType } from '../../entities/islamic-marker';
 import { PersistenceService } from '~/app/persistence/persistence.service';
 registerElement(
     'Fab',
