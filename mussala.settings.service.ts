@@ -232,14 +232,14 @@ export class MussalaSettingsService {
             if (imageSource.loadFromFile(imageFile)) {
                 image = new Image();
                 image.imageSource = imageSource;
-            } else console.error("MussalaSettingsSErvicegetMarkerIcon ImageSource not loaded.", imageFile);
+            } else console.error("MussalaSettingsService.getMarkerIcon ImageSource not loaded.", imageFile);
         } else if (typeof type === 'string' && type.startsWith("data:image/png;base64")) {
             if (this._settings.debug)
                 console.log("MussalaSettingsService.getMakerIcon base64", type);
             if (imageSource.loadFromBase64(type.slice(22))) {
                 image = new Image();
                 image.imageSource = imageSource;
-            } else console.error("MussalaSettingsSErvicegetMarkerIcon ImageSource Base64 not loaded.", type);
+            } else console.error("MussalaSettingsService.getMarkerIcon ImageSource Base64 not loaded.", type);
         } else if (typeof type == 'string' && type.startsWith("http")) {
             if (this._settings.debug)
                 console.log("MussalaSettingsService.getMakerIcon http", type);

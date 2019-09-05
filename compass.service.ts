@@ -159,4 +159,5 @@ export class CompassService implements OnDestroy {
         // usa o _settings para obter a lista de markers cadastrados 
         return <GPSInfo>{ latitude: -3.7214696, longitude: -38.5430259 }
     }
+
 }
