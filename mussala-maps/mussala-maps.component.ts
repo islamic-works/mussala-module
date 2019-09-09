@@ -5,12 +5,12 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, Output, AfterViewI
 import { ModalDialogOptions, ModalDialogService } from "nativescript-angular/modal-dialog";
 
 import { MapView, Marker, Position, Bounds } from 'nativescript-google-maps-sdk';
-//import * as GoogleMapsUtils from "nativescript-google-maps-utils"
+import * as GoogleMapsUtils from 'nativescript-google-maps-utils';
 
 import { CompassService } from '../compass.service';
 import { AuthService, PhoneOptions, FacebookOptions, GoogleOptions, LoginType } from '../../auth/services';
 import { IslamicUser } from '../../auth/islamic-user';
-import { MussalaSettingsService } from '../mussala.settings.service';
+import { MussalaSettingsService } from '../mussala-settings.service';
 
 import { GPSConfig } from '../../entities/gps-config';
 import { GPSInfo } from '../../entities/gps-info';
@@ -62,7 +62,7 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
     maxZoom = 22;
     bearing = 0;
     tilt = 0;
-    padding = [40, 40, 40, 40];
+    padding = [10, 10, 10, 10];
 
     //@ViewChild("mapView", { "static": false })
     mapView: MapView & { infoWindowTemplates: string };
@@ -100,7 +100,7 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
                 console.log("MussalaMapsComponent.ngAfterViewInit");
     }
 
-    public async doLogin(type: string) {
+    public async doLogin(type: string): Promise<IslamicUser|void> {
         if (this._settings.debug)
             console.log("MussalaMapsComponent.doLogin",type);
 
@@ -110,11 +110,16 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
             this._auth.authorize('doLogin');
         } catch (ae) {
             console.log("MussalaMapsComponent.doLogin _auth.autorize",ae);
-                        return;
+            return;
         }
 
+        if(this._auth.islamicUser){
+            this._settings.debug && console.log("MussalaMapsComponent.doLogin - logout");
+            return this._auth.logout();
+        }
+    
         if (this._settings.debug)
-        console.log("MussalaMapsComponent.doLogin");
+            console.log("MussalaMapsComponent.doLogin");
 
         this._onLoginEvent = true;
         this.isBusy = true;
@@ -123,33 +128,26 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
         this.active_sub = 'login';
 
         this.msg = "Logando! ";
+        let login: Promise<IslamicUser>;
         switch (type) {
-            case 'phone':
-                this.msg += "(Phone)";
+            case 'phone+facebook':
+                this.msg += "(Phone + Facebook)";
+                this.doLogin("phone").then(()=>this.doLogin("facebook"));
                 break;
             case 'facebook':
                 this.msg += "(Facebook)";
-                break;
-            case 'google':
-                this.msg += "(Google)";
-                break;
-            default:
-                this.msg += "(Anonymous)";
-                break;
-        }
-
-        let login: Promise<IslamicUser>;
-        switch (type) {
-            case 'facebook':
                 login = this._auth.login(<FacebookOptions>{ type: LoginType.FACEBOOK });
                 break;
             case 'google':
+                this.msg += "(Google)";
                 login = this._auth.login(<GoogleOptions>{ type: LoginType.GOOGLE });
                 break;
             case 'phone':
+                this.msg += "(Phone)";
                 login = this._doLoginPhone();
                 break;
             default:
+                this.msg += "(Anonymous)";
                 login = this._auth.login();
                 break;
         }
@@ -167,12 +165,23 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
         }).catch((error: Error) => {
             if (this._settings.debug)
                 console.log("",error);
+            return null;
         }).then(() => {
-                this.active_sub = lastActive;
-                this._onLoginEvent = false;
-                this.isBusy = false;
+            this.active_sub = lastActive;
+            this._onLoginEvent = false;
+            this.isBusy = false;
         });
     }
+
+    private createHeatMap(positionSet: []){
+        GoogleMapsUtils.setupHeatmap(this.mapView, positionSet);
+    }
+
+    private createClusterUserMarker(markerSet: Marker[]){
+    	GoogleMapsUtils.setupMarkerCluster(this.mapView, markerSet ,this.clusterOptions);
+    }
+
+    clusterOptions;
 
     /**
      * Marcador do usuário, onde o celular se encontra.
@@ -324,11 +333,12 @@ export class MussalaMapsComponent implements OnInit, OnDestroy, AfterViewInit {
         this.mapView = event.object;
 
         this.mapView.settings.compassEnabled = true;
-        this.mapView.settings.myLocationButtonEnabled = true;
+        this.mapView.settings.zoomControlsEnabled = true;
         this.mapView.settings.zoomGesturesEnabled = true;
         this.mapView.settings.rotateGesturesEnabled = true;
         this.mapView.settings.scrollGesturesEnabled = true;
         this.mapView.settings.tiltGesturesEnabled = true;
+        this.mapView.settings.myLocationButtonEnabled = false;
 
         const template = this._createInfoWindowTemplate();
         this.mapView.infoWindowTemplates = template;

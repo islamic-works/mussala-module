@@ -18,7 +18,7 @@
          (cameraChanged)="onCameraChanged($event)"
          (cameraMove)="onCameraMove($event)"
          (cameraMoveStarted)="onCameraMoveStarted($event)"></MapView>
-         <StackLayout row="2" orientation="horizontal">
+         <StackLayout row="2" orientation="horizontal"  width="100%">
             <FAB (tap)="findNearMussala()" icon="~/assets/images/mussala-maps/find-near-mussala.png"
                [ngClass]="{ 'fab-button-find-near-active': active_sub === 'find-mussala-near' }" rippleColor="#f1f1f1"
                class="fab-button fab-button-find-mussala-near"></FAB>
@@ -28,21 +28,24 @@
             <FAB (tap)="goToMyLocation()" icon="~/assets/images/mussala-maps/point-to-my-location.png"
                [ngClass]="{ 'fab-button-my-location-active': active_sub === 'my-location' }" rippleColor="#f1f1f1"
                class="fab-button fab-button-my-location"></FAB>
-            <stacklayout orientation="horizontal">
-               <FAB #login (tap)="doLogin('phone')" icon="~/assets/images/auth/do-login.png"
+            <stacklayout orientation="horizontal" horizontalAlignment="right" width="100%">
+               <label dock="top" [text]="msg" style="text-align: center"  horizontalAlignment="stretch"  textWrap="true"></label>
+<!--
+                  <FAB #login (tap)="doLogin('phone')" icon="~/assets/images/auth/do-login.png"
                   [ngClass]="{ 'fab-button-login-active': active_sub === 'login' }" rippleColor="#f1f1f1"
                   class="fab-button fab-button-login"></FAB>
+-->
                <FAB #login_google (tap)="doLogin('google')" icon="~/assets/images/auth/google-active.png"
                   [ngClass]="{ 'fab-button-login-active': active_sub === 'google' }" rippleColor="#f1f1f1"
+                  class="fab-button fab-button-login" horizontalAlignment="right" ></FAB>
+<!--
+              <FAB #login_facebook (tap)="doLogin('facebook')" icon="~/assets/images/auth/facebook-active.png"
                   class="fab-button fab-button-login"></FAB>
-               <FAB #login_facebook (tap)="doLogin('facebook')" icon="~/assets/images/auth/facebook-active.png"
-                  [ngClass]="{ 'fab-button-login-active': active_sub === 'facebook' }" rippleColor="#f1f1f1"
-                  class="fab-button fab-button-login"></FAB>
-               <label dock="top" [text]="msg" style="text-align: center" textWrap="true"></label>
+-->
             </stacklayout>
          </StackLayout>
-    </GridLayout> 
-    
- <!-- <app-spinner dock="left" *ngIf="isBusy"></app-spinner> -->  
+    </GridLayout>
+
+ <!-- <app-spinner dock="left" *ngIf="isBusy"></app-spinner> -->
 
 </DockLayout>

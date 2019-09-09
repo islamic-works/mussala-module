@@ -2,10 +2,11 @@ import { Injectable, OnInit, OnDestroy } from "@angular/core";
 
 import { GPSConfig } from "../entities/gps-config";
 import { GPSInfo } from "../entities/gps-info";
-import { MussalaSettingsService } from "./mussala.settings.service";
+import { MussalaSettingsService } from "./mussala-settings.service";
 import { BehaviorSubject, Observable } from "rxjs";
 
 import * as geoLocation from "nativescript-geolocation";
+import { Options } from "nativescript-geolocation";
 
 /**
  * for more information go to:
@@ -16,7 +17,13 @@ import * as geoLocation from "nativescript-geolocation";
 })
 export class CompassService implements OnDestroy {
     private _gpsInfo: BehaviorSubject<GPSInfo> = new BehaviorSubject<GPSInfo>(<GPSInfo>{});
-    _gpsInfo$: Observable<GPSInfo>;
+    private _gpsInfo$: Observable<GPSInfo>;
+    private _defaultOptionLocation: Options = <Options>{ 
+        desiredAccuracy: 3, 
+        updateDistance: 7, // atualizar a cada 7 metros 
+        updateTime: 4000,  // atualizar a cada 4 segundos
+        minimumUpdateTime: 1000 // atualizar no mínimo a cada 1 segundo
+    };
 
     /**
      * Ao ser construído verifica se o serviço de geolocalização está ativo e liberado.
@@ -27,7 +34,7 @@ export class CompassService implements OnDestroy {
      */
     constructor(protected _settings: MussalaSettingsService) {
         if (_settings.debug) console.log("CompassService.new");
-        geoLocation.isEnabled({ updateTime: 300 })
+        geoLocation.isEnabled(this._defaultOptionLocation)
             .then((isEnabled) => {
                 if (!isEnabled) {
                     if (_settings.debug)
@@ -120,7 +127,7 @@ export class CompassService implements OnDestroy {
             (e) => {
                 console.error("Error: " + e.message);
             },
-            { desiredAccuracy: 3, updateDistance: 10, minimumUpdateTime: 1000 * .3 });
+            this._defaultOptionLocation);
             // Should update every 20 seconds according to Googe documentation. Not verified.
     }
 
