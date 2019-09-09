@@ -37,9 +37,12 @@ export class MussalaSettingsService {
 
         let sponsors: Sponsor[] = this._settings.sponsors;
 
-        return sponsors.map<Marker>((sponsor: Sponsor) => {
-            if (sponsor.gps || sponsor.gps.latitude)
-                return this.createMarker(sponsor);
+        return sponsors
+        .filter((sponsor:Sponsor)=>{
+            if (sponsor.gps || sponsor.gps.latitude) return sponsor;
+        })
+        .map<Marker>((sponsor: Sponsor) => {
+           return this.createMarker(sponsor);
         })
     }
     get teamMarkers(): Marker[] {
@@ -48,10 +51,13 @@ export class MussalaSettingsService {
 
         let teamMember: TeamMember[] = this._settings.team;
 
-        return teamMember.map<Marker>((member: TeamMember) => {
-            if (member.gps && member.gps.latitude)
-                return this.createMarker(member);
+        return teamMember
+        .filter((member:TeamMember)=> {
+            if (member.gps && member.gps.latitude) return member;
         })
+        .map<Marker>((member: TeamMember) => {
+            return this.createMarker(member);
+        });
     }
 
     /**
@@ -283,8 +289,8 @@ export class MussalaSettingsService {
         let markersInfo: MarkerInfo[];
         let markers: Marker[];
         markersInfo = this.getMarkersInfo();
-        if (this._settings.debug)
-            console.log("MussalaSettingsService.allMarkers ", markersInfo);
+//        if (this._settings.debug)
+//            console.log("MussalaSettingsService.allMarkers ", markersInfo);
 
         markers = markersInfo.map((item: MarkerInfo) => {
             return this.createMarker(item);
@@ -307,7 +313,7 @@ export class MussalaSettingsService {
 
         const teamMarkers: Marker[] = this.teamMarkers;
         if (this._settings.debug)
-            console.log("MussalaSettingsService.allMarkers teamMarkers ", teamMarkers.length);
+            console.log("MussalaSettingsService.allMarkers teamMarkers ", teamMarkers);
 
         markers.push(...teamMarkers);
 
